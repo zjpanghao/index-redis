@@ -1,1 +1,0 @@
-/home/panghao/redis/consumer/build/CMakeFiles/fetch_market_redis.dir
