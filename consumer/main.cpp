@@ -146,9 +146,9 @@ int start_consumer(const char *servers, RedisPool *pool, int nums) {
   return 0;
 }
 
-int start_consumer(const char *servers, RedisPool *pool) {
+int start_consumer(const char *servers, const std::string &group, RedisPool *pool) {
   MarketKafkaConsumer *consumer = new MarketKafkaConsumer(pool);
-  int rc = consumer->Init(servers, "east_wealth", "group_index_redis");
+  int rc = consumer->Init(servers, "east_wealth", group.c_str());
   if (rc < 0)
     return rc;
   consumer->set_partition(1);
@@ -198,18 +198,21 @@ int start_producer(const char *servers) {
 
 int main(int argc, char*argv[]) {
   InitGlog(argv[0]);
-  int nums = atoi(argv[1]);
+  std::string group = "kafka_group";
+  if (argc >= 2) {
+    group = argv[1];
+  }
   ElectionControl election;
   const char *server = "192.168.1.74:2181";
   if (election.Init(server, 500) == false) {
-    printf("Init election failed!\n");
+    LOG(ERROR) << "Init election failed!";
     return -1;
   }
   const std::string node_name = "quant_index_redis";
   while (election.Election(node_name) == false) {
-    printf("Now election\n");
     sleep(10);
   }
+  LOG(INFO) << ("Election OK");
   RedisPool pool("192.168.1.72", 7481, 10, 20, "3", "ky_161019");
   const char *servers = {"192.168.1.74:9092"};
   LOG(INFO) << servers;
@@ -219,7 +222,7 @@ int main(int argc, char*argv[]) {
     return -1;
   }
 #endif
-  if (start_consumer(servers, &pool) < 0) {
+  if (start_consumer(servers, group, &pool) < 0) {
     LOG(ERROR) << "start consumer error";
     return -1;
   }
