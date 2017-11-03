@@ -202,17 +202,21 @@ int main(int argc, char*argv[]) {
   if (argc >= 2) {
     group = argv[1];
   }
+#if 1
   ElectionControl election;
   const char *server = "192.168.1.74:2181";
-  if (election.Init(server, 500) == false) {
+  if (election.Init(server, 2000) == false) {
     LOG(ERROR) << "Init election failed!";
     return -1;
   }
-  const std::string node_name = "quant_index_redis";
+  const std::string node_name = "/quant_index_redis";
   while (election.Election(node_name) == false) {
+    LOG(INFO) << "SLEEPING";
     sleep(10);
   }
+
   LOG(INFO) << ("Election OK");
+#endif
   RedisPool pool("192.168.1.72", 7481, 10, 20, "3", "ky_161019");
   const char *servers = {"192.168.1.74:9092"};
   LOG(INFO) << servers;
