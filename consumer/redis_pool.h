@@ -17,6 +17,10 @@
         Auth(password);
         Select(db);
       }
+      ~RedisControl() {
+        if (context_)
+          redisFree(context_);
+      }
 
       bool idle() {
         return idle_;
