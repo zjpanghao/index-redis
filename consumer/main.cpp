@@ -9,7 +9,7 @@
 #include <iostream>
 #include <thread>
 #include <future>
-#include "redis_pool.h"
+#include "predis/redis_pool.h"
 #include "zookeeper/zookeeper.h"
 #include "election.h"
 // #include "zookeeper/zookeeper_log.h"
@@ -87,11 +87,11 @@ class MarketKafkaConsumer : public KafkaConsumer {
      std::string stock_info(buf, len);
      std::vector<std::string> infos;
      Split(stock_info, "\n", &infos);
-     std::shared_ptr<RedisControl> control = pool_->GetControl();
-     if (control == NULL) {
-       LOG(INFO) << "null redis ptr" << std::endl;
-       return;
-     }
+     std::shared_ptr<RedisControl> control(NULL);// = pool_->GetControl();
+     // if (control == NULL) {
+      // LOG(INFO) << "null redis ptr" << std::endl;
+       //return;
+     // }
      static const std::set<std::string> index_codes{"000300.SH", "000001.SH", "399001.SZ", "399006.SZ"};
    
      for (auto &info : infos) {
@@ -116,6 +116,12 @@ class MarketKafkaConsumer : public KafkaConsumer {
        LOG(INFO) << code << " " << info; 
        std::string key = "index:" + code;
        int min = time_int / 100;
+       RedisControlGuard controlGuard(pool_);
+       std::shared_ptr<RedisControl> control(NULL);// = pool_->GetControl();
+       control = controlGuard.GetControl();
+       if (!control) {
+         continue;
+       }
        if (min >= 925 && time_int <= 930) {
          std::string old_info;
          control->GetHashValue(hash, key, &old_info);
@@ -140,7 +146,7 @@ int start_consumer(const char *servers, RedisPool *pool, int nums) {
   int rc = consumer->Init(servers, "east_wealth", "group_test_count_113");
   if (rc < 0)
     return rc;
-  consumer->set_partition(1);
+  consumer->set_partition(2);
   if(0 != (rc = consumer->StartAll(nums)))
     return -1;
   return 0;
@@ -151,8 +157,8 @@ int start_consumer(const char *servers, const std::string &group, RedisPool *poo
   int rc = consumer->Init(servers, "east_wealth", group.c_str());
   if (rc < 0)
     return rc;
-  consumer->set_partition(1);
-  if(0 != (rc = consumer->StartAll()))
+  consumer->set_partition(2);
+  if(0 != (rc = consumer->StartAll(1000)))
     return -1;
   return 0;
 }
@@ -198,7 +204,7 @@ int start_producer(const char *servers) {
 
 int main(int argc, char*argv[]) {
   InitGlog(argv[0]);
-  std::string group = "kafka_group";
+  std::string group = "kafka_group_test";
   if (argc >= 2) {
     group = argv[1];
   }
@@ -208,12 +214,12 @@ int main(int argc, char*argv[]) {
     LOG(ERROR) << "Init election failed!";
     return -1;
   }
-  const std::string node_name = "quant_index_redis";
+  const std::string node_name = "/quant_index_redis_test";
   while (election.Election(node_name) == false) {
     sleep(10);
   }
   LOG(INFO) << ("Election OK");
-  RedisPool pool("192.168.1.72", 7481, 10, 20, "3", "ky_161019");
+  RedisPool pool("192.168.1.67", 7481, 1, 20, "3", "ky_161019");
   const char *servers = {"192.168.1.74:9092"};
   LOG(INFO) << servers;
 #if 0

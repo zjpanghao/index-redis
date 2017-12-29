@@ -6,6 +6,9 @@
 
 class KafkaConsumer {
  public:
+  virtual ~KafkaConsumer() {
+  }
+
   int Init(std::string brokers, std::string topic, std::string group); 
  
   int StartAll(); 
