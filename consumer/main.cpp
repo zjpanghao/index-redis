@@ -87,7 +87,6 @@ class MarketKafkaConsumer : public KafkaConsumer {
      std::string stock_info(buf, len);
      std::vector<std::string> infos;
      Split(stock_info, "\n", &infos);
-     std::shared_ptr<RedisControl> control(NULL);// = pool_->GetControl();
      // if (control == NULL) {
       // LOG(INFO) << "null redis ptr" << std::endl;
        //return;
@@ -133,7 +132,6 @@ class MarketKafkaConsumer : public KafkaConsumer {
        }
        control->SetHashValue(hash, key, info);
      }
-     pool_->ReturnControl(control);
    }
 
   private:
